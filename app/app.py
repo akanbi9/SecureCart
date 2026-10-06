@@ -99,4 +99,40 @@ def login():
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
-    
+
+
+@app.route("/api/v1/me", methods=["GET"])
+def get_current_user():
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT id, username, role, created_at
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    ).fetchone()
+
+    db.close()
+
+    if user is None:
+        session.clear()
+
+        return jsonify({
+            "error": "User not found"
+        }), 401
+
+    return jsonify({
+        "id": user["id"],
+        "username": user["username"],
+        "role": user["role"],
+        "created_at": user["created_at"]
+    }), 200
