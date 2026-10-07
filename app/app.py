@@ -112,6 +112,27 @@ def logout():
         "message": "Logout successful"
     }), 200
 
+def get_logged_in_user():
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return None
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT id, username, role
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    ).fetchone()
+
+    db.close()
+
+    return user
+
 
 # --------------------
 # USER PROFILE
@@ -382,6 +403,149 @@ def get_order(order_id):
         ]
     }), 200
 
+@app.route("/api/v1/admin/products", methods=["POST"])
+def create_product():
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "admin":
+        return jsonify({
+            "error": "Admin access required"
+        }), 403
+
+    data = request.get_json()
+
+    name = data.get("name")
+    description = data.get("description")
+    price = data.get("price")
+    stock = data.get("stock")
+
+    if not name or price is None or stock is None:
+        return jsonify({
+            "error": "Name, price and stock are required"
+        }), 400
+
+    if not isinstance(price, (int, float)) or price <= 0:
+        return jsonify({
+            "error": "Price must be greater than zero"
+        }), 400
+
+    if not isinstance(stock, int) or stock < 0:
+        return jsonify({
+            "error": "Stock must be a non-negative integer"
+        }), 400
+
+    db = get_db()
+
+    cursor = db.execute(
+        """
+        INSERT INTO products (name, description, price, stock)
+        VALUES (?, ?, ?, ?)
+        """,
+        (name, description, price, stock)
+    )
+
+    product_id = cursor.lastrowid
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Product created successfully",
+        "product_id": product_id
+    }), 201
+
+@app.route("/api/v1/admin/products/<int:product_id>", methods=["PATCH"])
+def update_product(product_id):
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "admin":
+        return jsonify({
+            "error": "Admin access required"
+        }), 403
+
+    data = request.get_json()
+
+    db = get_db()
+
+    product = db.execute(
+        """
+        SELECT id, name, description, price, stock
+        FROM products
+        WHERE id = ?
+        """,
+        (product_id,)
+    ).fetchone()
+
+    if product is None:
+        db.close()
+
+        return jsonify({
+            "error": "Product not found"
+        }), 404
+
+    name = data.get("name", product["name"])
+    description = data.get("description", product["description"])
+    price = data.get("price", product["price"])
+    stock = data.get("stock", product["stock"])
+
+    if not name:
+        db.close()
+
+        return jsonify({
+            "error": "Product name is required"
+        }), 400
+
+    if not isinstance(price, (int, float)) or price <= 0:
+        db.close()
+
+        return jsonify({
+            "error": "Price must be greater than zero"
+        }), 400
+
+    if not isinstance(stock, int) or stock < 0:
+        db.close()
+
+        return jsonify({
+            "error": "Stock must be a non-negative integer"
+        }), 400
+
+    db.execute(
+        """
+        UPDATE products
+        SET name = ?, description = ?, price = ?, stock = ?
+        WHERE id = ?
+        """,
+        (
+            name,
+            description,
+            price,
+            stock,
+            product_id
+        )
+    )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Product updated successfully",
+        "product_id": product_id,
+        "name": name,
+        "description": description,
+        "price": price,
+        "stock": stock
+    }), 200
+
 
 # --------------------
 # START APPLICATION
@@ -394,4 +558,3 @@ if __name__ == "__main__":
 
 
 
-    
