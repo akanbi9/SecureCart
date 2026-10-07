@@ -95,6 +95,33 @@ def login():
         "role": user["role"]
     }), 200
 
+@app.route("/api/v1/products", methods=["GET"])
+def get_products():
+    db = get_db()
+
+    products = db.execute(
+        """
+        SELECT id, name, description, price, stock
+        FROM products
+        ORDER BY id
+        """
+    ).fetchall()
+
+    db.close()
+
+    return jsonify([
+        {
+            "id": product["id"],
+            "name": product["name"],
+            "description": product["description"],
+            "price": product["price"],
+            "stock": product["stock"]
+        }
+        for product in products
+    ]), 200
+
+
+
 
 if __name__ == "__main__":
     init_db()
