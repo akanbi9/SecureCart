@@ -546,6 +546,165 @@ def update_product(product_id):
         "stock": stock
     }), 200
 
+#--------------------
+# ADMIN: VIEW ALL ORDERS
+#--------------------
+
+@app.route("/api/v1/admin/orders/<int:order_id>/assignment", methods=["PATCH"])
+def assign_order(order_id):
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "admin":
+        return jsonify({
+            "error": "Admin access required"
+        }), 403
+
+    data = request.get_json()
+    support_id = data.get("support_id")
+
+    if support_id is None:
+        return jsonify({
+            "error": "Support ID is required"
+        }), 400
+
+    db = get_db()
+
+    # Check that the order exists
+    order = db.execute(
+        """
+        SELECT id
+        FROM orders
+        WHERE id = ?
+        """,
+        (order_id,)
+    ).fetchone()
+
+    if order is None:
+        db.close()
+
+        return jsonify({
+            "error": "Order not found"
+        }), 404
+
+    # Check that the selected user really is support staff
+    support_user = db.execute(
+        """
+        SELECT id, username, role
+        FROM users
+        WHERE id = ?
+        """,
+        (support_id,)
+    ).fetchone()
+
+    if support_user is None or support_user["role"] != "support":
+        db.close()
+
+        return jsonify({
+            "error": "Valid support user required"
+        }), 400
+
+    db.execute(
+        """
+        UPDATE orders
+        SET assigned_support_id = ?
+        WHERE id = ?
+        """,
+        (support_id, order_id)
+    )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Order assigned successfully",
+        "order_id": order_id,
+        "support_id": support_id,
+        "support_username": support_user["username"]
+    }), 200
+
+#--------------------
+# SUPPORT: VIEW ASSIGNED ORDERS
+#--------------------
+
+@app.route("/api/v1/support/orders/<int:order_id>", methods=["GET"])
+def get_support_order(order_id):
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "support":
+        return jsonify({
+            "error": "Support access required"
+        }), 403
+
+    db = get_db()
+
+    order = db.execute(
+        """
+        SELECT id, user_id, total, status,
+               assigned_support_id, created_at
+        FROM orders
+        WHERE id = ?
+        """,
+        (order_id,)
+    ).fetchone()
+
+    if order is None:
+        db.close()
+
+        return jsonify({
+            "error": "Order not found"
+        }), 404
+
+    # Support can only view orders assigned to them.
+    if order["assigned_support_id"] != user["id"]:
+        db.close()
+
+        return jsonify({
+            "error": "Access denied"
+        }), 403
+
+    items = db.execute(
+        """
+        SELECT
+            products.name,
+            order_items.quantity,
+            order_items.price_at_purchase
+        FROM order_items
+        JOIN products
+            ON order_items.product_id = products.id
+        WHERE order_items.order_id = ?
+        """,
+        (order_id,)
+    ).fetchall()
+
+    db.close()
+
+    return jsonify({
+        "id": order["id"],
+        "customer_id": order["user_id"],
+        "total": order["total"],
+        "status": order["status"],
+        "assigned_support_id": order["assigned_support_id"],
+        "created_at": order["created_at"],
+        "items": [
+            {
+                "product": item["name"],
+                "quantity": item["quantity"],
+                "price": item["price_at_purchase"]
+            }
+            for item in items
+        ]
+    }), 200
+
 
 # --------------------
 # START APPLICATION
