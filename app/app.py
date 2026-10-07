@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
+import requests
 
 from database import get_db, init_db
 
@@ -863,6 +864,58 @@ def mock_payment_webhook():
         "message": "Payment notification processed",
         "order_id": order_id,
         "status": new_status
+    }), 200
+
+
+# --------------------
+# SUPPLIER INTEGRATION PREVIEW
+# --------------------
+
+@app.route("/api/v1/integrations/preview", methods=["POST"])
+def supplier_preview():
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    data = request.get_json()
+    product_id = data.get("product_id")
+
+    if not isinstance(product_id, int) or product_id <= 0:
+        return jsonify({
+            "error": "Valid product ID is required"
+        }), 400
+
+    # Only our approved local supplier can be contacted.
+    supplier_url = (
+        f"http://127.0.0.1:5001/supplier/product/{product_id}"
+    )
+
+    try:
+        response = requests.get(
+            supplier_url,
+            timeout=3
+        )
+    except requests.RequestException:
+        return jsonify({
+            "error": "Supplier service unavailable"
+        }), 502
+
+    if response.status_code == 404:
+        return jsonify({
+            "error": "Supplier product not found"
+        }), 404
+
+    if response.status_code != 200:
+        return jsonify({
+            "error": "Supplier request failed"
+        }), 502
+
+    return jsonify({
+        "message": "Supplier preview retrieved",
+        "supplier_data": response.json()
     }), 200
 
 
