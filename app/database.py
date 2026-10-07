@@ -64,6 +64,15 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (order_id) REFERENCES orders(id)
         );
+
+        CREATE TABLE IF NOT EXISTS security_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            outcome TEXT NOT NULL,
+            description TEXT NOT NULL,
+            correlation_id TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     """)
 
     db.commit()
@@ -73,4 +82,3 @@ def init_db():
 if __name__ == "__main__":
     init_db()
     print("SecureCart database initialized successfully.")
-    

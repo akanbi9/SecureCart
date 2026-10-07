@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
+import uuid
 
 from database import get_db, init_db
 
@@ -88,14 +89,44 @@ def login():
 
     db.close()
 
+    # Check for an invalid username or password
     if user is None or not check_password_hash(
         user["password_hash"],
         password
     ):
+        log_security_event(
+            "AUTH_FAILURE",
+            "blocked",
+            f"Failed login attempt for username: {username}"
+        )
+
+        db = get_db()
+
+        failed_attempts = db.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM security_events
+            WHERE event_type = 'AUTH_FAILURE'
+              AND description = ?
+            """,
+            (f"Failed login attempt for username: {username}",)
+        ).fetchone()["count"]
+
+        
+        db.close()
+        
+        if failed_attempts >= 3:    
+            log_security_event(
+                "FAILED_LOGIN_ALERT",
+                "alert",
+                f"Multiple failed login attempts detected for username: {username}"
+            )
+        
         return jsonify({
             "error": "Invalid username or password"
         }), 401
 
+    # Login was successful
     session["user_id"] = user["id"]
 
     return jsonify({
@@ -103,7 +134,6 @@ def login():
         "username": user["username"],
         "role": user["role"]
     }), 200
-
 
 @app.route("/api/v1/auth/logout", methods=["POST"])
 def logout():
@@ -133,6 +163,79 @@ def get_logged_in_user():
     db.close()
 
     return user
+
+def log_security_event(event_type, outcome, description):
+    correlation_id = str(uuid.uuid4())
+
+    db = get_db()
+
+    db.execute(
+        """
+        INSERT INTO security_events
+        (event_type, outcome, description, correlation_id)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            event_type,
+            outcome,
+            description,
+            correlation_id
+        )
+    )
+
+    db.commit()
+    db.close()
+
+    return correlation_id
+
+# --------------------
+# ADMIN SECURITY EVENTS
+# --------------------
+
+@app.route("/api/v1/admin/security-events", methods=["GET"])
+def get_security_events():
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "admin":
+        return jsonify({
+            "error": "Admin access required"
+        }), 403
+
+    db = get_db()
+
+    events = db.execute(
+        """
+        SELECT
+            id,
+            event_type,
+            outcome,
+            description,
+            correlation_id,
+            created_at
+        FROM security_events
+        ORDER BY id DESC
+        LIMIT 100
+        """
+    ).fetchall()
+
+    db.close()
+
+    return jsonify([
+        {
+            "id": event["id"],
+            "event_type": event["event_type"],
+            "outcome": event["outcome"],
+            "description": event["description"],
+            "correlation_id": event["correlation_id"],
+            "created_at": event["created_at"]
+        }
+        for event in events
+    ]), 200
 
 
 # --------------------
@@ -812,9 +915,18 @@ def mock_payment_webhook():
     expected_secret = "securecart-local-payment-secret"
 
     if webhook_secret != expected_secret:
-        return jsonify({
-            "error": "Invalid payment notification"
-        }), 401
+        log_security_event(
+        "INVALID_PAYMENT_NOTIFICATION",
+        "blocked",
+        f"Rejected payment notification for order: {order_id}"
+    )
+
+    return jsonify({
+        "error": "Invalid payment notification"
+    }), 401
+        
+            
+        
 
     if order_id is None or payment_status is None:
         return jsonify({
