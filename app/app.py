@@ -795,6 +795,78 @@ def apply_coupon(order_id):
     }), 200
 
 
+#--------------------
+# mock payment webhook
+#--------------------
+
+@app.route("/api/v1/webhooks/mock-payment", methods=["POST"])
+def mock_payment_webhook():
+    data = request.get_json()
+
+    order_id = data.get("order_id")
+    payment_status = data.get("payment_status")
+    webhook_secret = data.get("webhook_secret")
+
+    # Temporary local secret for our mock payment service.
+    expected_secret = "securecart-local-payment-secret"
+
+    if webhook_secret != expected_secret:
+        return jsonify({
+            "error": "Invalid payment notification"
+        }), 401
+
+    if order_id is None or payment_status is None:
+        return jsonify({
+            "error": "Order ID and payment status are required"
+        }), 400
+
+    if payment_status not in ["paid", "failed"]:
+        return jsonify({
+            "error": "Invalid payment status"
+        }), 400
+
+    db = get_db()
+
+    order = db.execute(
+        """
+        SELECT id, status
+        FROM orders
+        WHERE id = ?
+        """,
+        (order_id,)
+    ).fetchone()
+
+    if order is None:
+        db.close()
+        return jsonify({
+            "error": "Order not found"
+        }), 404
+
+    if payment_status == "paid":
+        new_status = "paid"
+    else:
+        new_status = "payment_failed"
+
+    db.execute(
+        """
+        UPDATE orders
+        SET status = ?
+        WHERE id = ?
+        """,
+        (new_status, order_id)
+    )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Payment notification processed",
+        "order_id": order_id,
+        "status": new_status
+    }), 200
+
+
+
 # --------------------
 # START APPLICATION
 # --------------------
