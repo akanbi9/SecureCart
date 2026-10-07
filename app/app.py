@@ -8,10 +8,18 @@ app = Flask(__name__)
 app.secret_key = "development-secret-key"
 
 
+# --------------------
+# HOME
+# --------------------
+
 @app.route("/")
 def home():
     return "Welcome to SecureCart!"
 
+
+# --------------------
+# AUTHENTICATION
+# --------------------
 
 @app.route("/api/v1/auth/register", methods=["POST"])
 def register():
@@ -95,6 +103,100 @@ def login():
         "role": user["role"]
     }), 200
 
+
+@app.route("/api/v1/auth/logout", methods=["POST"])
+def logout():
+    session.clear()
+
+    return jsonify({
+        "message": "Logout successful"
+    }), 200
+
+
+# --------------------
+# USER PROFILE
+# --------------------
+
+@app.route("/api/v1/me", methods=["GET"])
+def get_current_user():
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT id, username, full_name, role, created_at
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    ).fetchone()
+
+    db.close()
+
+    if user is None:
+        session.clear()
+
+        return jsonify({
+            "error": "User not found"
+        }), 401
+
+    return jsonify({
+        "id": user["id"],
+        "username": user["username"],
+        "full_name": user["full_name"],
+        "role": user["role"],
+        "created_at": user["created_at"]
+    }), 200
+
+
+@app.route("/api/v1/me", methods=["PATCH"])
+def update_current_user():
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    data = request.get_json()
+
+    full_name = data.get("full_name")
+
+    if not full_name:
+        return jsonify({
+            "error": "Full name is required"
+        }), 400
+
+    db = get_db()
+
+    db.execute(
+        """
+        UPDATE users
+        SET full_name = ?
+        WHERE id = ?
+        """,
+        (full_name, user_id)
+    )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Profile updated successfully",
+        "full_name": full_name
+    }), 200
+
+
+# --------------------
+# PRODUCTS
+# --------------------
+
 @app.route("/api/v1/products", methods=["GET"])
 def get_products():
     db = get_db()
@@ -121,11 +223,14 @@ def get_products():
     ]), 200
 
 
+# --------------------
+# ORDERS
+# --------------------
+
 @app.route("/api/v1/orders", methods=["POST"])
 def create_order():
     user_id = session.get("user_id")
 
-    # User must be logged in
     if user_id is None:
         return jsonify({
             "error": "Authentication required"
@@ -148,7 +253,6 @@ def create_order():
 
     db = get_db()
 
-    # Get the REAL product information from our database
     product = db.execute(
         """
         SELECT id, name, price, stock
@@ -172,7 +276,7 @@ def create_order():
             "error": "Not enough stock"
         }), 400
 
-    # SecureCart calculates the price itself
+    # Server calculates the real total.
     total = product["price"] * quantity
 
     cursor = db.execute(
@@ -239,7 +343,7 @@ def get_order(order_id):
             "error": "Order not found"
         }), 404
 
-    # Customer can only view their own order
+    # A customer can only view their own order.
     if order["user_id"] != user_id:
         db.close()
 
@@ -278,43 +382,16 @@ def get_order(order_id):
         ]
     }), 200
 
+
+# --------------------
+# START APPLICATION
+# --------------------
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
 
 
-@app.route("/api/v1/me", methods=["GET"])
-def get_current_user():
-    user_id = session.get("user_id")
 
-    if user_id is None:
-        return jsonify({
-            "error": "Authentication required"
-        }), 401
 
-    db = get_db()
-
-    user = db.execute(
-        """
-        SELECT id, username, role, created_at
-        FROM users
-        WHERE id = ?
-        """,
-        (user_id,)
-    ).fetchone()
-
-    db.close()
-
-    if user is None:
-        session.clear()
-
-        return jsonify({
-            "error": "User not found"
-        }), 401
-
-    return jsonify({
-        "id": user["id"],
-        "username": user["username"],
-        "role": user["role"],
-        "created_at": user["created_at"]
-    }), 200
+    
