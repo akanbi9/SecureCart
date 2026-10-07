@@ -121,7 +121,162 @@ def get_products():
     ]), 200
 
 
+@app.route("/api/v1/orders", methods=["POST"])
+def create_order():
+    user_id = session.get("user_id")
 
+    # User must be logged in
+    if user_id is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    data = request.get_json()
+
+    product_id = data.get("product_id")
+    quantity = data.get("quantity")
+
+    if not product_id or not quantity:
+        return jsonify({
+            "error": "Product ID and quantity are required"
+        }), 400
+
+    if not isinstance(quantity, int) or quantity <= 0:
+        return jsonify({
+            "error": "Quantity must be a positive integer"
+        }), 400
+
+    db = get_db()
+
+    # Get the REAL product information from our database
+    product = db.execute(
+        """
+        SELECT id, name, price, stock
+        FROM products
+        WHERE id = ?
+        """,
+        (product_id,)
+    ).fetchone()
+
+    if product is None:
+        db.close()
+
+        return jsonify({
+            "error": "Product not found"
+        }), 404
+
+    if quantity > product["stock"]:
+        db.close()
+
+        return jsonify({
+            "error": "Not enough stock"
+        }), 400
+
+    # SecureCart calculates the price itself
+    total = product["price"] * quantity
+
+    cursor = db.execute(
+        """
+        INSERT INTO orders (user_id, total, status)
+        VALUES (?, ?, ?)
+        """,
+        (user_id, total, "pending")
+    )
+
+    order_id = cursor.lastrowid
+
+    db.execute(
+        """
+        INSERT INTO order_items
+        (order_id, product_id, quantity, price_at_purchase)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            order_id,
+            product["id"],
+            quantity,
+            product["price"]
+        )
+    )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Order created successfully",
+        "order_id": order_id,
+        "product": product["name"],
+        "quantity": quantity,
+        "total": total,
+        "status": "pending"
+    }), 201
+
+
+@app.route("/api/v1/orders/<int:order_id>", methods=["GET"])
+def get_order(order_id):
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    db = get_db()
+
+    order = db.execute(
+        """
+        SELECT id, user_id, total, status, created_at
+        FROM orders
+        WHERE id = ?
+        """,
+        (order_id,)
+    ).fetchone()
+
+    if order is None:
+        db.close()
+
+        return jsonify({
+            "error": "Order not found"
+        }), 404
+
+    # Customer can only view their own order
+    if order["user_id"] != user_id:
+        db.close()
+
+        return jsonify({
+            "error": "Access denied"
+        }), 403
+
+    items = db.execute(
+        """
+        SELECT
+            products.name,
+            order_items.quantity,
+            order_items.price_at_purchase
+        FROM order_items
+        JOIN products
+            ON order_items.product_id = products.id
+        WHERE order_items.order_id = ?
+        """,
+        (order_id,)
+    ).fetchall()
+
+    db.close()
+
+    return jsonify({
+        "id": order["id"],
+        "total": order["total"],
+        "status": order["status"],
+        "created_at": order["created_at"],
+        "items": [
+            {
+                "product": item["name"],
+                "quantity": item["quantity"],
+                "price": item["price_at_purchase"]
+            }
+            for item in items
+        ]
+    }), 200
 
 if __name__ == "__main__":
     init_db()
