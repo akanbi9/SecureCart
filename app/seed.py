@@ -1,6 +1,6 @@
 from werkzeug.security import generate_password_hash
 
-from database import get_db, init_db
+from app.database import get_db, init_db
 
 
 def create_user(username, password, role):

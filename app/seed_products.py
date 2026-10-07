@@ -1,4 +1,4 @@
-from database import get_db, init_db
+from app.database import get_db, init_db
 
 
 products = [
@@ -19,18 +19,24 @@ def seed_products():
     db = get_db()
 
     for name, description, price, stock in products:
-        db.execute(
-            """
-            INSERT INTO products (name, description, price, stock)
-            VALUES (?, ?, ?, ?)
-            """,
-            (name, description, price, stock)
-        )
+        existing_product = db.execute(
+            "SELECT id FROM products WHERE name = ?",
+            (name,)
+        ).fetchone()
+
+        if existing_product is None:
+            db.execute(
+                """
+                INSERT INTO products (name, description, price, stock)
+                VALUES (?, ?, ?, ?)
+                """,
+                (name, description, price, stock)
+            )
 
     db.commit()
     db.close()
 
-    print("10 products added successfully.")
+    print("Product seeding complete.")
 
 
 if __name__ == "__main__":

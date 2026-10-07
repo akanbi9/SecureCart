@@ -18,6 +18,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
+            full_name TEXT,
             role TEXT NOT NULL CHECK(role IN ('customer', 'support', 'admin')),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
