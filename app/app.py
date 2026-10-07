@@ -705,6 +705,95 @@ def get_support_order(order_id):
         ]
     }), 200
 
+#--------------------
+#the coupon route
+#--------------------
+
+@app.route("/api/v1/orders/<int:order_id>/coupon", methods=["POST"])
+def apply_coupon(order_id):
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({"error": "Authentication required"}), 401
+
+    if user["role"] != "customer":
+        return jsonify({"error": "Customer access required"}), 403
+
+    data = request.get_json()
+    coupon_code = data.get("coupon_code")
+
+    if coupon_code != "SECURE10":
+        return jsonify({"error": "Invalid coupon code"}), 400
+
+    db = get_db()
+
+    # Find the order.
+    order = db.execute(
+        """
+        SELECT id, user_id, total
+        FROM orders
+        WHERE id = ?
+        """,
+        (order_id,)
+    ).fetchone()
+
+    if order is None:
+        db.close()
+        return jsonify({"error": "Order not found"}), 404
+
+    # A customer can only apply a coupon to their own order.
+    if order["user_id"] != user["id"]:
+        db.close()
+        return jsonify({"error": "Access denied"}), 403
+
+    # Check whether this customer has already used the promotion.
+    previous_usage = db.execute(
+        """
+        SELECT id
+        FROM coupon_usage
+        WHERE user_id = ?
+        """,
+        (user["id"],)
+    ).fetchone()
+
+    if previous_usage is not None:
+        db.close()
+        return jsonify({
+            "error": "Promotion has already been used by this account"
+        }), 409
+
+    original_total = order["total"]
+    discount = original_total * 0.10
+    new_total = original_total - discount
+
+    db.execute(
+        """
+        UPDATE orders
+        SET total = ?
+        WHERE id = ?
+        """,
+        (new_total, order_id)
+    )
+
+    db.execute(
+        """
+        INSERT INTO coupon_usage (user_id, order_id, coupon_code)
+        VALUES (?, ?, ?)
+        """,
+        (user["id"], order_id, coupon_code)
+    )
+
+    db.commit()
+    db.close()
+
+    return jsonify({
+        "message": "Coupon applied successfully",
+        "coupon_code": coupon_code,
+        "original_total": original_total,
+        "discount": discount,
+        "new_total": new_total
+    }), 200
+
 
 # --------------------
 # START APPLICATION

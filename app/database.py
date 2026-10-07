@@ -53,6 +53,17 @@ def init_db():
             FOREIGN KEY (order_id) REFERENCES orders(id),
             FOREIGN KEY (product_id) REFERENCES products(id)
         );
+
+        CREATE TABLE IF NOT EXISTS coupon_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            order_id INTEGER NOT NULL,
+            coupon_code TEXT NOT NULL,
+            used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (order_id) REFERENCES orders(id)
+        );
     """)
 
     db.commit()
@@ -62,3 +73,4 @@ def init_db():
 if __name__ == "__main__":
     init_db()
     print("SecureCart database initialized successfully.")
+    
