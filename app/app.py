@@ -939,8 +939,7 @@ def mock_payment_webhook():
     webhook_secret = data.get("webhook_secret")
 
     # Temporary local secret for our mock payment service.
-    expected_secret = "securecart-local-payment-secret"
-
+    expected_secret = os.environ["PAYMENT_WEBHOOK_SECRET"]
     if webhook_secret != expected_secret:
         log_security_event(
             "INVALID_PAYMENT_NOTIFICATION",
