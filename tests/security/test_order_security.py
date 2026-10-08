@@ -112,3 +112,53 @@ def test_order_rejects_boolean_quantity(client):
 
     assert response.status_code == 400
     assert response.get_json()["error"] == "Quantity must be a positive integer"
+
+
+def test_order_cannot_exceed_stock_across_multiple_orders(client):
+    # Log in as a customer.
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "username": "customer1",
+            "password": "Customer123!"
+        }
+    )
+
+    assert login_response.status_code == 200
+
+    # Read the available stock directly from the test database.
+    from app.database import get_db
+
+    db = get_db()
+
+    product = db.execute(
+        "SELECT id, stock FROM products WHERE id = 1"
+    ).fetchone()
+
+    available_stock = product["stock"]
+    db.close()
+
+    assert available_stock > 0
+
+    # First order requests all available stock.
+    first_response = client.post(
+        "/api/v1/orders",
+        json={
+            "product_id": 1,
+            "quantity": available_stock
+        }
+    )
+
+    assert first_response.status_code == 201
+
+    # Second order requests the same stock again.
+    second_response = client.post(
+        "/api/v1/orders",
+        json={
+            "product_id": 1,
+            "quantity": available_stock
+        }
+    )
+
+    # The application must prevent overselling.
+    assert second_response.status_code == 400

@@ -428,10 +428,32 @@ def create_order():
             "error": "Not enough stock"
         }), 400
 
+    
     # Server calculates the real total.
     total = product["price"] * quantity
 
+    # SC-008: Atomically reserve inventory.
+    # Only reduce stock if enough remains.
+    stock_update = db.execute(
+        """
+        UPDATE products
+        SET stock = stock - ?
+        WHERE id = ?
+          AND stock >= ?
+        """,
+        (quantity, product_id, quantity)
+    )
+
+    if stock_update.rowcount != 1:
+        db.rollback()
+        db.close()
+
+        return jsonify({
+            "error": "Not enough stock"
+        }), 400
+
     cursor = db.execute(
+
         """
         INSERT INTO orders (user_id, total, status)
         VALUES (?, ?, ?)
