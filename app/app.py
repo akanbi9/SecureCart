@@ -1,13 +1,14 @@
+import os
+import uuid
 from flask import Flask, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
-import uuid
 
 from app.database import get_db, init_db
 
 app = Flask(__name__)
 
-app.secret_key = "development-secret-key"
+app.secret_key = os.environ["SECRET_KEY"]
 
 
 # --------------------
