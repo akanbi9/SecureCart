@@ -978,6 +978,17 @@ def mock_payment_webhook():
             "error": "Order not found"
         }), 404
 
+    
+# SC-006: Prevent changes to completed payments.
+    
+    if order["status"] == "paid":
+        db.close()
+
+        return jsonify({
+            "error": "Payment already completed"
+        }), 409
+
+
     if payment_status == "paid":
         new_status = "paid"
     else:
