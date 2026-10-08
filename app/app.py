@@ -861,7 +861,7 @@ def apply_coupon(order_id):
     # Find the order.
     order = db.execute(
         """
-        SELECT id, user_id, total
+        SELECT id, user_id, total, status
         FROM orders
         WHERE id = ?
         """,
@@ -873,9 +873,21 @@ def apply_coupon(order_id):
         return jsonify({"error": "Order not found"}), 404
 
     # A customer can only apply a coupon to their own order.
+    
     if order["user_id"] != user["id"]:
         db.close()
         return jsonify({"error": "Access denied"}), 403
+
+    # SC-007: Coupons can only be applied to pending orders.
+    if order["status"] != "pending":
+        db.close()
+
+        return jsonify({
+            "error": "Coupons cannot be applied to orders that are no longer pending"
+        }), 409
+
+    # Check whether this customer has already used the promotion.
+
 
     # Check whether this customer has already used the promotion.
     previous_usage = db.execute(
