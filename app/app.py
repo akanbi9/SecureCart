@@ -372,7 +372,7 @@ def create_order():
             "error": "Product ID and quantity are required"
         }), 400
 
-    if not isinstance(quantity, int) or quantity <= 0:
+    if type(quantity) is not int or quantity <= 0:
         return jsonify({
             "error": "Quantity must be a positive integer"
         }), 400

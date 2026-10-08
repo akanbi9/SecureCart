@@ -98,3 +98,17 @@ def test_order_ignores_customer_supplied_price(client):
     # The server must calculate the actual product price.
     assert data["total"] == 450000
     assert data["total"] != 1
+
+def test_order_rejects_boolean_quantity(client):
+    login(client)
+
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            "product_id": 1,
+            "quantity": True
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "Quantity must be a positive integer"
