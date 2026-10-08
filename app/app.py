@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 import uuid
 
-from database import get_db, init_db
+from app.database import get_db, init_db
 
 app = Flask(__name__)
 
@@ -916,17 +916,14 @@ def mock_payment_webhook():
 
     if webhook_secret != expected_secret:
         log_security_event(
-        "INVALID_PAYMENT_NOTIFICATION",
-        "blocked",
-        f"Rejected payment notification for order: {order_id}"
-    )
+            "INVALID_PAYMENT_NOTIFICATION",
+            "blocked",
+            f"Rejected payment notification for order: {order_id}"
+        )
 
-    return jsonify({
-        "error": "Invalid payment notification"
-    }), 401
-        
-            
-        
+        return jsonify({
+            "error": "Invalid payment notification"
+        }), 401
 
     if order_id is None or payment_status is None:
         return jsonify({
