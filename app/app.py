@@ -72,12 +72,36 @@ def login():
     username = data.get("username")
     password = data.get("password")
 
+    
     if not username or not password:
         return jsonify({
             "error": "Username and password are required"
         }), 400
 
+    # SC-004: Check failed logins within the last five minutes.
     db = get_db()
+
+    recent_failures = db.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM security_events
+        WHERE event_type = 'AUTH_FAILURE'
+          AND description = ?
+          AND created_at >= datetime('now', '-5 minutes')
+        """,
+        (f"Failed login attempt for username: {username}",)
+    ).fetchone()["count"]
+
+    db.close()
+
+    # Block further attempts after three failed logins.
+    if recent_failures >= 3:
+        return jsonify({
+            "error": "Too many login attempts. Try again later."
+        }), 429
+
+    db = get_db()
+
 
     user = db.execute(
         """
@@ -102,7 +126,9 @@ def login():
         )
 
         db = get_db()
-
+    
+    
+     
         failed_attempts = db.execute(
             """
             SELECT COUNT(*) AS count
