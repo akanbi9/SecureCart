@@ -1,75 +1,142 @@
-
+﻿
 # SecureCart OWASP Security Assessment Matrix
 
-## Project Information
+## 1. Project Information
 
-- Application: SecureCart
-- Framework: Python Flask
-- Database: SQLite
-- Assessment Type: Web and API Security
-- Testing Environment: Local authorized laboratory
-- Automated Security Tests: 26 passed
+**Project:** SecureCart â€“ Web and API Security Assessment
 
-## Assessment Scope
+**Framework:** Python Flask
 
-This assessment covers the OWASP Web Top 10 (2021)
-and OWASP API Security Top 10 (2023).
+**Database:** SQLite
 
-The assessment evaluates authentication, authorization,
-input validation, business logic, payment processing,
-inventory management, and security configuration.
+**Testing Environment:** Authorized local laboratory
 
-## OWASP Web Top 10 (2021)
+**Assessment Date:** 9 October 2026
 
-| ID | Security Category | Assessment Status |
-|---|---|---|
-| A01 | Broken Access Control | Pending review |
-| A02 | Cryptographic Failures | Pending review |
-| A03 | Injection | Pending review |
-| A04 | Insecure Design | Pending review |
-| A05 | Security Misconfiguration | Pending review |
-| A06 | Vulnerable and Outdated Components | Pending review |
-| A07 | Identification and Authentication Failures | Pending review |
-| A08 | Software and Data Integrity Failures | Pending review |
-| A09 | Security Logging and Monitoring Failures | Pending review |
-| A10 | Server-Side Request Forgery (SSRF) | Pending review |
+**Automated Security Tests:** 26 passed
 
-## OWASP API Security Top 10 (2023)
+**Verified Findings:** 8 documented and remediated in the tested scenarios
 
-| ID | Security Category | Assessment Status |
-|---|---|---|
-| API1 | Broken Object Level Authorization | Pending review |
-| API2 | Broken Authentication | Pending review |
-| API3 | Broken Object Property Level Authorization | Pending review |
-| API4 | Unrestricted Resource Consumption | Pending review |
-| API5 | Broken Function Level Authorization | Pending review |
-| API6 | Unrestricted Access to Sensitive Business Flows | Pending review |
-| API7 | Server Side Request Forgery | Pending review |
-| API8 | Security Misconfiguration | Pending review |
-| API9 | Improper Inventory Management | Pending review |
-| API10 | Unsafe Consumption of APIs | Pending review |
+## 2. Introduction
 
-## Verified Security Findings
+As part of my SecureCart cybersecurity capstone project, I assessed the application's security using the OWASP Web Top 10 (2021) and OWASP API Security Top 10 (2023) as reference frameworks.
 
-| Finding ID | Security Weakness | Remediation |
-|---|---|---|
-| SC-001 | Hardcoded Flask secret key | Fixed |
-| SC-002 | Flask debug mode enabled | Fixed |
-| SC-003 | Improper order quantity validation | Fixed |
-| SC-004 | Missing login rate limiting | Fixed |
-| SC-005 | Hardcoded payment webhook secret | Fixed |
-| SC-006 | Improper payment status transition | Fixed |
-| SC-007 | Coupon applied after payment | Fixed |
-| SC-008 | Inventory overselling | Fixed |
+I reviewed the application's source code and tested selected API endpoints to identify weaknesses in authentication, authorization, input validation, application configuration, and business logic.
 
-## Assessment Notes
+During the assessment, I documented eight security findings and implemented fixes. I also used automated regression tests to verify the corrected behaviors.
 
-The findings above were identified through source-code
-review and targeted security testing.
+This matrix records the security categories I examined, the evidence available, and the areas that still require additional assessment.
 
-Twenty-six automated security tests passed after the
-latest remediation.
+## 3. Assessment Status Definitions
 
-Passing tests do not establish that every OWASP category
-is fully secure. Each category requires a documented
-assessment method and supporting evidence.
+- **Finding remediated:** I identified a weakness, implemented a correction, and verified the tested behavior.
+- **Partially assessed:** I carried out relevant tests, but the category has not been assessed completely.
+- **Not yet assessed:** I have not collected sufficient evidence to evaluate the category.
+
+## 4. OWASP Web Top 10 (2021)
+
+| ID | Security Category | My Assessment and Evidence | Status |
+|---|---|---|---|
+| A01 | Broken Access Control | I tested restrictions on administrator functions and access to other customers' orders using authorization tests. | Partially assessed |
+| A02 | Cryptographic Failures | I identified hardcoded Flask and webhook secrets, replaced them with environment variables, and verified the relevant corrections. SC-001, SC-005. | Finding remediated |
+| A03 | Injection | I have not documented dedicated SQL injection or other injection testing. | Not yet assessed |
+| A04 | Insecure Design | I identified weaknesses in order quantity validation, payment-state handling, coupon processing, and inventory management. SC-003, SC-006, SC-007, SC-008. | Partially assessed |
+| A05 | Security Misconfiguration | I identified and disabled Flask debug mode. SC-002. | Finding remediated |
+| A06 | Vulnerable and Outdated Components | I have not documented a dependency vulnerability assessment. | Not yet assessed |
+| A07 | Identification and Authentication Failures | I tested login behavior and implemented a limit on repeated failed authentication attempts. SC-004. | Partially assessed |
+| A08 | Software and Data Integrity Failures | I configured automated tests in GitHub Actions, but have not completed a dedicated software integrity assessment. | Not yet assessed |
+| A09 | Security Logging and Monitoring Failures | I used authentication failure events for login rate limiting and reviewed security event functionality. Comprehensive monitoring remains unverified. | Partially assessed |
+| A10 | Server-Side Request Forgery (SSRF) | I have not documented dedicated SSRF testing. | Not yet assessed |
+
+## 5. OWASP API Security Top 10 (2023)
+
+| ID | Security Category | My Assessment and Evidence | Status |
+|---|---|---|---|
+| API1 | Broken Object Level Authorization | I tested whether a customer could access another customer's order. | Partially assessed |
+| API2 | Broken Authentication | I identified missing login rate limiting and a hardcoded webhook authentication secret. SC-004, SC-005. | Finding remediated |
+| API3 | Broken Object Property Level Authorization | I have not completed a dedicated assessment of unauthorized object property access or modification. | Not yet assessed |
+| API4 | Unrestricted Resource Consumption | I implemented a failed-login threshold, but broader API resource-consumption controls remain untested. | Partially assessed |
+| API5 | Broken Function Level Authorization | I tested whether customers could access administrator security events or create administrator-managed products. | Partially assessed |
+| API6 | Unrestricted Access to Sensitive Business Flows | I identified and corrected improper payment transitions, coupon application after payment, and inventory overselling. SC-006, SC-007, SC-008. | Finding remediated |
+| API7 | Server Side Request Forgery | I have not documented dedicated API SSRF testing. | Not yet assessed |
+| API8 | Security Misconfiguration | I disabled Flask debug mode and moved sensitive configuration values to environment variables. SC-001, SC-002, SC-005. | Partially assessed |
+| API9 | Improper Inventory Management | I have not completed a dedicated assessment of API endpoint inventory, documentation, and version management. | Not yet assessed |
+| API10 | Unsafe Consumption of APIs | My application uses mock supplier and payment integrations, but I have not completed a dedicated assessment of unsafe third-party API consumption. | Not yet assessed |
+
+## 6. Verified Security Findings
+
+During my assessment, I documented the following findings:
+
+| Finding ID | Security Weakness | Severity (Provisional) | Remediation |
+|---|---|---|---|
+| SC-001 | Hardcoded Flask secret key | Medium | Replaced with environment variable |
+| SC-002 | Flask debug mode enabled | Medium | Disabled debug mode |
+| SC-003 | Improper order quantity validation | Low | Enforced positive integer quantity |
+| SC-004 | Missing login rate limiting | Medium | Added database-backed failed-login threshold |
+| SC-005 | Hardcoded payment webhook secret | High | Replaced and rotated webhook secret |
+| SC-006 | Improper payment status transition | Medium | Rejected invalid transition after payment |
+| SC-007 | Coupon applied after payment | Medium | Restricted coupon application to pending orders |
+| SC-008 | Inventory overselling | Medium | Added conditional stock deduction within the order transaction |
+
+The detailed reproduction steps, observed results, remediations, and limitations are documented in `docs/security-findings.md`.
+
+## 7. Automated Security Testing
+
+After implementing the fixes, I ran the automated security tests using Pytest.
+
+I executed:
+
+```powershell
+python -m pytest tests/security/ -q
+```
+
+My final local result was:
+
+```text
+.......................... [100%]
+26 passed in 47.60s
+```
+
+I also configured GitHub Actions to run the security tests automatically when changes were pushed to the main branch or a pull request targeted that branch.
+
+The GitHub Actions workflow completed successfully on commit `13de2f1`.
+
+**CI evidence:** `evidence/github-actions-success.png`
+
+**Successful workflow:** https://github.com/akanbi9/SecureCart/actions/runs/37924644353
+
+## 8. Remaining Security Assessment Activities
+
+Although I remediated the eight documented findings, additional work is necessary to improve the assessment coverage.
+
+Areas requiring further attention include:
+
+- Dedicated injection testing.
+- Dependency vulnerability scanning.
+- Additional object property authorization tests.
+- SSRF testing where applicable.
+- API resource-consumption controls.
+- API endpoint inventory and version management.
+- Security monitoring and alerting verification.
+- Mock supplier and payment integration security.
+- Broader payment replay and concurrency testing.
+
+## 9. Assessment Limitations
+
+The assessment was performed in an authorized local testing environment using source-code review and targeted security tests.
+
+The OWASP categories were used as a framework for organizing my assessment. A partially assessed category does not mean that every vulnerability within that category has been identified.
+
+Likewise, remediating a documented finding does not establish that the entire OWASP category is secure.
+
+All eight findings were addressed in their documented test scenarios, but some residual risks and production security requirements remain.
+
+## 10. Conclusion
+
+Through my SecureCart security assessment, I gained practical experience identifying application vulnerabilities, implementing security controls, and verifying fixes using automated testing.
+
+I documented eight security findings, corrected the identified weaknesses in their tested scenarios, and successfully executed 26 automated security tests.
+
+I also used GitHub Actions to automate the testing process and provide evidence of successful execution.
+
+The assessment matrix helps me distinguish between completed testing activities and security areas that require further investigation.
