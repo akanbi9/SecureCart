@@ -42,7 +42,7 @@ This matrix records the security categories I examined, the evidence available, 
 | A03 | Injection | I tested SQL injection-like input in the order creation API and reviewed its parameterized SQL queries. The test passed, but other endpoints still require assessment. | Partially assessed |
 | A04 | Insecure Design | I identified weaknesses in order quantity validation, payment-state handling, coupon processing, and inventory management. SC-003, SC-006, SC-007, SC-008. | Partially assessed |
 | A05 | Security Misconfiguration | I identified and disabled Flask debug mode. SC-002. | Finding remediated |
-| A06 | Vulnerable and Outdated Components | I have not documented a dependency vulnerability assessment. | Not yet assessed |
+| A06 | Vulnerable and Outdated Components | I used pip-audit to scan the Python dependencies in requirements.txt. The scan reported no known vulnerabilities. Evidence: evidence/dependency-audit.txt. Other components have not been fully assessed. | Partially assessed |
 | A07 | Identification and Authentication Failures | I tested login behavior and implemented a limit on repeated failed authentication attempts. SC-004. | Partially assessed |
 | A08 | Software and Data Integrity Failures | I configured automated tests in GitHub Actions, but have not completed a dedicated software integrity assessment. | Not yet assessed |
 | A09 | Security Logging and Monitoring Failures | I used authentication failure events for login rate limiting and reviewed security event functionality. Comprehensive monitoring remains unverified. | Partially assessed |
