@@ -67,14 +67,27 @@ I also corrected a duplicate Pytest fixture that prevented some authorization te
 
 After making these corrections, I ran the tests again.
 
-My final local test result was:
+My initial local test result was:
 
 ```text
 .......................... [100%]
 26 passed in 47.60s
 ```
 
-This confirmed that all 26 automated security tests passed on my computer.
+Afterward, I added a SQL injection security test to check how the order creation API handles SQL injection-like input.
+
+I tested the input `1 OR 1=1` and confirmed that the application rejected it. I also reviewed the endpoint's parameterized SQL queries.
+
+I then ran all the security tests again.
+
+My latest local test result was:
+
+```text
+........................... [100%]
+27 passed in 70.08s (0:01:10)
+```
+
+All 27 automated security tests passed successfully.
 
 ## 5. Configuring GitHub Actions
 
@@ -124,13 +137,13 @@ I ran the tests again locally and confirmed that all 26 tests passed.
 
 Afterward, I committed the correction and pushed it to GitHub.
 
-## 7. Final GitHub Actions Result
+## 7. GitHub Actions Results (26-Test Version)
 
 After pushing the corrected test file, GitHub Actions automatically executed my security tests again.
 
 This time, the workflow completed successfully.
 
-My final CI result was:
+My recorded CI result for this earlier version was:
 
 | Test information | Result |
 |---|---|
@@ -169,7 +182,7 @@ I now understand how automated regression testing can help developers identify p
 
 ## 9. Limitations
 
-Although all 26 automated security tests passed, I understand that this does not mean my application is completely free from vulnerabilities.
+Although all 27 automated security tests passed locally, I understand that this does not mean my application is completely free from vulnerabilities.
 
 The tests cover specific security behaviors and previously identified weaknesses.
 
@@ -177,7 +190,7 @@ Further testing would be necessary to assess other possible vulnerabilities and 
 
 ## 10. Conclusion
 
-During my SecureCart cybersecurity capstone project, I successfully developed and executed 26 automated security tests.
+During my SecureCart cybersecurity capstone project, I successfully developed and executed 27 automated security tests locally, including an additional test for SQL injection-like input.
 
 I investigated the problems encountered during testing, corrected the test database setup, and configured GitHub Actions to execute the tests automatically.
 

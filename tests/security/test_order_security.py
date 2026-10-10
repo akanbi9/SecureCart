@@ -162,3 +162,21 @@ def test_order_cannot_exceed_stock_across_multiple_orders(client):
 
     # The application must prevent overselling.
     assert second_response.status_code == 400
+
+def test_order_rejects_sql_injection_in_product_id(client):
+    # Authenticate as a customer.
+    login_response = login(client)
+    assert login_response.status_code == 200
+
+    # Submit SQL injection-like input.
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            "product_id": "1 OR 1=1",
+            "quantity": 1
+        }
+    )
+
+    # The input must not result in a successful order.
+    assert response.status_code == 404
+    assert response.get_json()["error"] == "Product not found"

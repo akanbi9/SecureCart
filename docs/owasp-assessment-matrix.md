@@ -13,7 +13,7 @@
 
 **Assessment Date:** 9 October 2026
 
-**Automated Security Tests:** 26 passed
+**Automated Security Tests:** 27 passed
 
 **Verified Findings:** 8 documented and remediated in the tested scenarios
 
@@ -39,7 +39,7 @@ This matrix records the security categories I examined, the evidence available, 
 |---|---|---|---|
 | A01 | Broken Access Control | I tested restrictions on administrator functions and access to other customers' orders using authorization tests. | Partially assessed |
 | A02 | Cryptographic Failures | I identified hardcoded Flask and webhook secrets, replaced them with environment variables, and verified the relevant corrections. SC-001, SC-005. | Finding remediated |
-| A03 | Injection | I have not documented dedicated SQL injection or other injection testing. | Not yet assessed |
+| A03 | Injection | I tested SQL injection-like input in the order creation API and reviewed its parameterized SQL queries. The test passed, but other endpoints still require assessment. | Partially assessed |
 | A04 | Insecure Design | I identified weaknesses in order quantity validation, payment-state handling, coupon processing, and inventory management. SC-003, SC-006, SC-007, SC-008. | Partially assessed |
 | A05 | Security Misconfiguration | I identified and disabled Flask debug mode. SC-002. | Finding remediated |
 | A06 | Vulnerable and Outdated Components | I have not documented a dependency vulnerability assessment. | Not yet assessed |
@@ -82,7 +82,9 @@ The detailed reproduction steps, observed results, remediations, and limitations
 
 ## 7. Automated Security Testing
 
-After implementing the fixes, I ran the automated security tests using Pytest.
+After implementing the security fixes, I ran the automated security tests using Pytest.
+
+I also added a SQL injection security test to check how the SecureCart order creation API handles SQL injection-like input.
 
 I executed:
 
@@ -90,20 +92,24 @@ I executed:
 python -m pytest tests/security/ -q
 ```
 
-My final local result was:
+My latest local test result was:
 
 ```text
-.......................... [100%]
-26 passed in 47.60s
+........................... [100%]
+27 passed in 70.08s (0:01:10)
 ```
 
-I also configured GitHub Actions to run the security tests automatically when changes were pushed to the main branch or a pull request targeted that branch.
+All 27 automated security tests passed successfully.
 
-The GitHub Actions workflow completed successfully on commit `13de2f1`.
+The SQL injection test confirmed that the order creation endpoint rejected the tested SQL injection-like input. I also reviewed the endpoint's database queries and confirmed that they use parameterized SQL statements.
 
-**CI evidence:** `evidence/github-actions-success.png`
+This provides additional evidence for my OWASP A03:2021 Injection assessment.
 
-**Successful workflow:** https://github.com/akanbi9/SecureCart/actions/runs/37924644353
+My previous GitHub Actions workflow also completed successfully with 26 tests. The newly added 27th test has passed locally but has not yet been verified through GitHub Actions.
+
+**Previous CI evidence:** `evidence/github-actions-success.png`
+
+**Previous successful workflow:** https://github.com/akanbi9/SecureCart/actions/runs/37981063014
 
 ## 8. Remaining Security Assessment Activities
 
