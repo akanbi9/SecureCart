@@ -163,9 +163,9 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
             message.textContent = "Login successful!";
             message.style.color = "green";
 
-            // Return to the homepage until the
-            // authenticated dashboard is implemented.
-            window.location.assign("/products");
+        
+            // Redirect customer to dashboard after successful login
+            window.location.assign("/dashboard");
         } else {
             message.textContent = result.error || "Login failed.";
             message.style.color = "red";

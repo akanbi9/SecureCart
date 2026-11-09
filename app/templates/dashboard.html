@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | SecureCart</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #253247;
+        }
+
+        header {
+            background: #253247;
+            color: white;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .welcome {
+            margin-bottom: 35px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(230px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .card p {
+            color: #667085;
+        }
+
+        .card a {
+            display: inline-block;
+            margin-top: 10px;
+            background: #398ca6;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+        }
+
+        button {
+            background: #b42318;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>🛒 SecureCart</h2>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/products">Products</a>
+        <a href="/orders">My Orders</a>
+        <button type="button" onclick="logout()">
+            Logout
+        </button>
+    </nav>
+</header>
+
+<div class="container">
+
+    <div class="welcome">
+        <h1>Welcome, {{ username }}!</h1>
+        <p>Manage your SecureCart shopping account.</p>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>🛍️ Products</h3>
+            <p>Browse products available in our store.</p>
+            <a href="/products">View Products</a>
+        </div>
+
+        <div class="card">
+            <h3>📦 My Orders</h3>
+            <p>View your previous orders and their status.</p>
+            <a href="/orders">View Orders</a>
+        </div>
+
+        <div class="card">
+            <h3>👤 My Account</h3>
+            <p>Manage your account information.</p>
+            <a href="#" onclick="return false;">
+                Coming Soon
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+async function logout() {
+    try {
+        const response = await fetch("/api/v1/auth/logout", {
+            method: "POST",
+            credentials: "same-origin"
+        });
+
+        if (response.ok) {
+            window.location.href = "/login";
+        } else {
+            alert("Logout failed. Please try again.");
+        }
+    } catch (error) {
+        alert("Unable to connect to the server.");
+    }
+}
+</script>
+
+</body>
+</html>

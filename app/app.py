@@ -11,13 +11,57 @@ app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 
 
+
 # --------------------
 # HOME
 # --------------------
 
 @app.route("/")
 def home():
-    return render_template("home.html")
+    return render_template(
+        "home.html",
+        logged_in=session.get("user_id") is not None
+    )
+
+
+
+# --------------------
+# CUSTOMER DASHBOARD
+# --------------------
+
+@app.route("/dashboard", methods=["GET"])
+def customer_dashboard():
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return redirect("/login")
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT id, username, role
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    ).fetchone()
+
+    db.close()
+
+    if user is None:
+        session.clear()
+        return redirect("/login")
+
+    if user["role"] != "customer":
+        return jsonify({
+            "error": "Customer access required"
+        }), 403
+
+    return render_template(
+        "dashboard.html",
+        username=user["username"]
+    )
 
 
 # --------------------

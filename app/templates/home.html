@@ -70,13 +70,19 @@
 <body>
 
     <nav>
-        <div class="logo">🛒 SecureCart</div>
+        
         <div class="links">
             <a href="/">Home</a>
             <a href="/products">Products</a>
+
+        {% if logged_in %}
+            <a href="/dashboard">Dashboard</a>
+        {% else %}
             <a href="/login">Login</a>
             <a href="/register">Register</a>
+        {% endif %}
         </div>
+
     </nav>
 
     <section class="hero">
