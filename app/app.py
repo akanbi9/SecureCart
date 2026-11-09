@@ -1,6 +1,6 @@
 import os
 import uuid
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 
@@ -17,7 +17,62 @@ app.secret_key = os.environ["SECRET_KEY"]
 
 @app.route("/")
 def home():
-    return "Welcome to SecureCart!"
+    return render_template("home.html")
+
+
+# --------------------
+# REGISTRATION PAGE
+# --------------------
+
+@app.route("/register", methods=["GET"])
+def register_page():
+    return render_template("register.html")
+
+
+# --------------------
+# MY ORDERS PAGE
+# --------------------
+
+@app.route("/orders", methods=["GET"])
+def orders_page():
+
+    if session.get("user_id") is None:
+        return redirect(url_for("login_page"))
+
+    return render_template("orders.html")
+
+# --------------------
+# LOGIN PAGE
+# --------------------
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    return render_template("login.html")
+
+# --------------------
+# PRODUCTS PAGE
+# --------------------
+
+@app.route("/products", methods=["GET"])
+def products_page():
+    db = get_db()
+
+    products = db.execute(
+        """
+        SELECT id, name, description, price, stock
+        FROM products
+        ORDER BY id
+        """
+    ).fetchall()
+
+    db.close()
+
+   
+    return render_template(
+        "products.html",
+        products=products,
+        logged_in=session.get("user_id") is not None
+    )
 
 
 # --------------------
@@ -162,13 +217,24 @@ def login():
         "role": user["role"]
     }), 200
 
+
+# --------------------
+# LOGOUT
+# --------------------
+
 @app.route("/api/v1/auth/logout", methods=["POST"])
 def logout():
+    if session.get("user_id") is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
     session.clear()
 
     return jsonify({
         "message": "Logout successful"
     }), 200
+
 
 def get_logged_in_user():
     user_id = session.get("user_id")
@@ -779,6 +845,45 @@ def assign_order(order_id):
         "support_id": support_id,
         "support_username": support_user["username"]
     }), 200
+
+
+# --------------------
+# CUSTOMER ORDER HISTORY
+# --------------------
+
+@app.route("/api/v1/orders", methods=["GET"])
+def list_customer_orders():
+
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    db = get_db()
+
+    orders = db.execute(
+        """
+        SELECT id, total, status, created_at
+        FROM orders
+        WHERE user_id = ?
+        ORDER BY created_at DESC, id DESC
+        """,
+        (user_id,)
+    ).fetchall()
+
+    db.close()
+
+    return jsonify([
+        {
+            "id": order["id"],
+            "total": order["total"],
+            "status": order["status"],
+            "created_at": order["created_at"]
+        }
+        for order in orders
+    ]), 200
 
 #--------------------
 # SUPPORT: VIEW ASSIGNED ORDERS

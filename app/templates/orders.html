@@ -1,0 +1,268 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders | SecureCart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #172b4d;
+        }
+
+        nav {
+            background: #102a43;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            color: white;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 35px;
+        }
+
+        .order-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status {
+            background: #e0f2fe;
+            color: #075985;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .total {
+            font-size: 21px;
+            font-weight: bold;
+            color: #087f8c;
+        }
+
+        .button {
+            display: inline-block;
+            background: #087f8c;
+            color: white;
+            padding: 11px 17px;
+            border-radius: 7px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .button:hover {
+            background: #066874;
+        }
+
+        .items {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .error {
+            color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <div class="logo">🛒 SecureCart</div>
+
+    <div>
+        <a href="/">Home</a>
+        <a href="/products">Products</a>
+        <a href="/orders">My Orders</a>
+    </div>
+</nav>
+
+<div class="container">
+    <h1>My Orders</h1>
+
+    <p class="subtitle">
+        View your SecureCart order history.
+    </p>
+
+    <p id="message" role="status" aria-live="polite">
+        Loading your orders...
+    </p>
+
+    <div id="ordersList"></div>
+</div>
+
+<script>
+async function loadOrders() {
+    const message = document.getElementById("message");
+    const ordersList = document.getElementById("ordersList");
+
+    try {
+        const response = await fetch("/api/v1/orders", {
+            method: "GET",
+            credentials: "same-origin"
+        });
+
+        if (response.status === 401) {
+            window.location.assign("/login");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Unable to load orders.");
+        }
+
+        const orders = await response.json();
+
+        message.textContent = "";
+
+        if (orders.length === 0) {
+            message.textContent = "You have not placed any orders yet.";
+            return;
+        }
+
+        for (const order of orders) {
+            const card = document.createElement("div");
+            card.className = "order-card";
+
+            const header = document.createElement("div");
+            header.className = "order-header";
+
+            const title = document.createElement("h2");
+            title.textContent = "Order #" + order.id;
+
+            const status = document.createElement("span");
+            status.className = "status";
+            status.textContent = order.status;
+
+            header.append(title, status);
+
+            const date = document.createElement("p");
+            date.textContent = "Date: " + order.created_at;
+
+            const total = document.createElement("p");
+            total.className = "total";
+            total.textContent =
+                "Total: ₦" + Number(order.total).toLocaleString();
+
+            const button = document.createElement("button");
+            button.className = "button";
+            button.textContent = "View Order Details";
+
+            const items = document.createElement("div");
+            items.className = "items";
+            items.hidden = true;
+
+            button.addEventListener("click", async function() {
+                if (!items.hidden) {
+                    items.hidden = true;
+                    button.textContent = "View Order Details";
+                    return;
+                }
+
+                button.disabled = true;
+
+                try {
+                    const detailsResponse = await fetch(
+                        "/api/v1/orders/" + encodeURIComponent(order.id),
+                        { credentials: "same-origin" }
+                    );
+
+                    if (detailsResponse.status === 401) {
+                        window.location.assign("/login");
+                        return;
+                    }
+
+                    if (!detailsResponse.ok) {
+                        throw new Error("Unable to load order details.");
+                    }
+
+                    const details = await detailsResponse.json();
+
+                    items.replaceChildren();
+
+                    for (const item of details.items) {
+                        const paragraph = document.createElement("p");
+                        paragraph.textContent =
+                            item.product +
+                            " — Quantity: " + item.quantity +
+                            " — Unit price: ₦" +
+                            Number(item.price).toLocaleString();
+
+                        items.appendChild(paragraph);
+                    }
+
+                    items.hidden = false;
+                    button.textContent = "Hide Order Details";
+
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    button.disabled = false;
+                }
+            });
+
+            card.append(header, date, total, button, items);
+            ordersList.appendChild(card);
+        }
+
+    } catch (error) {
+        message.className = "error";
+        message.textContent = error.message;
+    }
+}
+
+loadOrders();
+</script>
+
+</body>
+</html>

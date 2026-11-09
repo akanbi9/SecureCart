@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Products | SecureCart</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #172b4d;
+        }
+
+        nav {
+            background: #102a43;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+
+        nav a:hover {
+            color: #5eead4;
+        }
+
+        .logo {
+            color: white;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 35px;
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .product-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+        }
+
+        .product-card h2 {
+            font-size: 20px;
+        }
+
+        .description {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .price {
+            color: #087f8c;
+            font-size: 23px;
+            font-weight: bold;
+        }
+
+        .stock {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .quantity-label {
+            display: block;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .quantity-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        .button {
+            display: inline-block;
+            background: #087f8c;
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 7px;
+            text-decoration: none;
+            margin-top: 15px;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+        }
+
+        .button:hover {
+            background: #066874;
+        }
+
+        .button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .out-of-stock {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .notice {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        #order-message {
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="logo">🛒 SecureCart</div>
+
+        <div>
+            <a href="/">Home</a>
+            <a href="/products">Products</a>
+
+            {% if not logged_in %}
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            {% else %}
+                <a href="/orders">My Orders</a>
+                <span style="color: #5eead4;">
+                    Logged In
+                </span>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+
+    <div class="container">
+
+        <h1>Explore Our Products</h1>
+
+        <p class="subtitle">
+            Discover products available on SecureCart.
+        </p>
+
+        {% if logged_in %}
+            <div class="notice">
+                Welcome back! You can now place orders.
+            </div>
+        {% else %}
+            <div class="notice">
+                Please log in to place an order.
+            </div>
+        {% endif %}
+
+        <p id="order-message" role="status" aria-live="polite"></p>
+
+        <!-- PRODUCT LIST -->
+        <div class="products">
+
+            {% for product in products %}
+
+            <div class="product-card">
+
+                <h2>{{ product.name }}</h2>
+
+                <p class="description">
+                    {{ product.description }}
+                </p>
+
+                <p class="price">
+                    ₦{{ "{:,.2f}".format(product.price) }}
+                </p>
+
+                {% if product.stock > 0 %}
+                    <p class="stock">
+                        Available stock: {{ product.stock }}
+                    </p>
+                {% else %}
+                    <p class="out-of-stock">
+                        Out of Stock
+                    </p>
+                {% endif %}
+
+                <!-- ORDER SECTION -->
+                {% if logged_in %}
+
+                    {% if product.stock > 0 %}
+
+                        <label
+                            class="quantity-label"
+                            for="quantity-{{ product.id }}"
+                        >
+                            Quantity
+                        </label>
+
+                        <input
+                            class="quantity-input"
+                            type="number"
+                            id="quantity-{{ product.id }}"
+                            min="1"
+                            max="{{ product.stock }}"
+                            value="1"
+                        >
+
+                        <button
+                            type="button"
+                            class="button"
+                            id="order-button-{{ product.id }}"
+                            onclick="placeOrder({{ product.id }})"
+                        >
+                            Order Now
+                        </button>
+
+                    {% else %}
+
+                        <button
+                            class="button"
+                            disabled
+                        >
+                            Out of Stock
+                        </button>
+
+                    {% endif %}
+
+                {% else %}
+
+                    <a href="/login" class="button">
+                        Login to Order
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+            {% else %}
+
+                <p>No products are available yet.</p>
+
+            {% endfor %}
+
+        </div>
+    </div>
+
+    <!-- ORDER JAVASCRIPT -->
+    <script>
+        async function placeOrder(productId) {
+
+            const quantityInput = document.getElementById(
+                "quantity-" + productId
+            );
+
+            const button = document.getElementById(
+                "order-button-" + productId
+            );
+
+            const message = document.getElementById(
+                "order-message"
+            );
+
+            const quantity = Number(quantityInput.value);
+
+            if (
+                quantityInput.value.trim() === "" ||
+                !Number.isInteger(quantity) ||
+                quantity <= 0 ||
+                quantity > Number(quantityInput.max)
+            ) {
+                alert("Please enter a valid quantity.");
+                return;
+            }
+
+            const confirmed = confirm(
+                "Are you sure you want to place this order?"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Processing...";
+
+            try {
+
+                const response = await fetch(
+                    "/api/v1/orders",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        credentials: "same-origin",
+                        body: JSON.stringify({
+                            product_id: productId,
+                            quantity: quantity
+                        })
+                    }
+                );
+
+                const result = await response.json();
+
+                if (response.ok) {
+
+                    message.style.color = "green";
+                    message.textContent =
+                        "Order #" + result.order_id +
+                        " created successfully!";
+
+                    alert(
+                        "Order created successfully!\n\n" +
+                        "Order ID: " + result.order_id + "\n" +
+                        "Product: " + result.product + "\n" +
+                        "Quantity: " + result.quantity + "\n" +
+                        "Total: ₦" + Number(result.total).toLocaleString() + "\n" +
+                        "Status: " + result.status
+                    );
+
+                    window.location.reload();
+
+                } else if (response.status === 401) {
+
+                    alert(
+                        "Your session has expired. Please log in."
+                    );
+
+                    window.location.assign("/login");
+
+                } else {
+
+                    message.style.color = "red";
+                    message.textContent =
+                        result.error || "Order failed.";
+
+                    alert(result.error || "Unable to place order.");
+
+                }
+
+            } catch (error) {
+
+                message.style.color = "red";
+                message.textContent =
+                    "Connection error. Please try again.";
+
+            } finally {
+
+                button.disabled = false;
+                button.textContent = "Order Now";
+
+            }
+        }
+    </script>
+
+</body>
+</html>
