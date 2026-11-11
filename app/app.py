@@ -1,5 +1,6 @@
 import os
 import uuid
+import secrets
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
@@ -61,6 +62,52 @@ def customer_dashboard():
     return render_template(
         "dashboard.html",
         username=user["username"]
+    )
+
+
+# --------------------
+# ADMIN DASHBOARD
+# --------------------
+
+@app.route("/admin/dashboard", methods=["GET"])
+def admin_dashboard():
+    user_id = session.get("user_id")
+
+    if user_id is None:
+        return redirect("/login")
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT id, username, role
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    ).fetchone()
+
+    db.close()
+
+    if user is None:
+        session.clear()
+        return redirect("/login")
+
+    if user["role"] != "admin":
+        return jsonify({
+            "error": "Admin access required"
+        }), 403
+
+    csrf_token = session.get("csrf_token")
+
+    if csrf_token is None:
+        csrf_token = secrets.token_urlsafe(32)
+        session["csrf_token"] = csrf_token
+
+    return render_template(
+        "admin_dashboard.html",
+        username=user["username"],
+        csrf_token=csrf_token
     )
 
 
@@ -678,6 +725,19 @@ def create_product():
     if user["role"] != "admin":
         return jsonify({
             "error": "Admin access required"
+        }), 403
+
+    # Verify CSRF token before creating a product
+    expected_token = session.get("csrf_token")
+    received_token = request.headers.get("X-CSRF-Token")
+
+    if (
+        not expected_token
+        or not received_token
+        or not secrets.compare_digest(expected_token, received_token)
+    ):
+        return jsonify({
+            "error": "Invalid or missing CSRF token"
         }), 403
 
     data = request.get_json()

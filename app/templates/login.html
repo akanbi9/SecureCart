@@ -164,20 +164,27 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
             message.style.color = "green";
 
         
-            // Redirect customer to dashboard after successful login
-            window.location.assign("/dashboard");
+           // Redirect users based on their roles
+            if (result.role === "admin") {
+                window.location.assign("/admin/dashboard");
+            } else if (result.role === "customer") {
+                window.location.assign("/dashboard");
+            } else {
+                message.textContent = "Login successful. No dashboard is available for this role yet.";
+                message.style.color = "#172b4d";
+            }
         } else {
             message.textContent = result.error || "Login failed.";
             message.style.color = "red";
         }
-    } catch (error) {
-        message.textContent = "Unable to connect. Please try again.";
-        message.style.color = "red";
-    } finally {
-        button.disabled = false;
-    }
-});
-</script>
+        } catch (error) {
+            message.textContent = "Unable to connect. Please try again.";
+            message.style.color = "red";
+        } finally {
+            button.disabled = false;
+        }
+        });
+        </script>
 
 </body>
 </html>
