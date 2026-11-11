@@ -169,6 +169,8 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
                 window.location.assign("/admin/dashboard");
             } else if (result.role === "customer") {
                 window.location.assign("/dashboard");
+            } else if (result.role === "support") {
+                window.location.href = "/support/dashboard";
             } else {
                 message.textContent = "Login successful. No dashboard is available for this role yet.";
                 message.style.color = "#172b4d";

@@ -111,6 +111,28 @@ def admin_dashboard():
     )
 
 
+# -------------------------
+# SUPPORT STAFF DASHBOARD
+# -------------------------
+
+@app.route("/support/dashboard", methods=["GET"])
+def support_dashboard():
+    user = get_logged_in_user()
+
+    if user is None:
+        return redirect("/login")
+
+    if user["role"] != "support":
+        return jsonify({
+            "error": "Support access required"
+        }), 403
+
+    return render_template(
+        "support_dashboard.html",
+        username=user["username"]
+    )
+
+
 # --------------------
 # REGISTRATION PAGE
 # --------------------
@@ -873,6 +895,8 @@ def update_product(product_id):
 # ADMIN: VIEW ALL ORDERS
 #--------------------
 
+
+
 @app.route("/api/v1/admin/orders/<int:order_id>/assignment", methods=["PATCH"])
 def assign_order(order_id):
     user = get_logged_in_user()
@@ -885,6 +909,19 @@ def assign_order(order_id):
     if user["role"] != "admin":
         return jsonify({
             "error": "Admin access required"
+        }), 403
+
+    # CSRF protection for order assignment
+    expected_token = session.get("csrf_token")
+    received_token = request.headers.get("X-CSRF-Token")
+
+    if (
+        not expected_token
+        or not received_token
+        or not secrets.compare_digest(expected_token, received_token)
+    ):
+        return jsonify({
+            "error": "Invalid or missing CSRF token"
         }), 403
 
     data = request.get_json()
@@ -951,6 +988,43 @@ def assign_order(order_id):
     }), 200
 
 
+
+@app.route("/api/v1/admin/orders", methods=["GET"])
+def admin_list_orders():
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "admin":
+        return jsonify({
+            "error": "Admin access required"
+        }), 403
+
+    db = get_db()
+
+    orders = db.execute("""
+        SELECT
+            orders.id,
+            users.username AS customer,
+            orders.total,
+            orders.status,
+            orders.assigned_support_id,
+            orders.created_at
+        FROM orders
+        JOIN users ON orders.user_id = users.id
+        ORDER BY orders.id DESC
+    """).fetchall()
+
+    db.close()
+
+    return jsonify({
+        "orders": [dict(order) for order in orders]
+    }), 200
+
+
 # --------------------
 # CUSTOMER ORDER HISTORY
 # --------------------
@@ -988,6 +1062,48 @@ def list_customer_orders():
         }
         for order in orders
     ]), 200
+
+
+
+# -------------------------
+# SUPPORT: VIEW ASSIGNED ORDERS
+# -------------------------
+
+@app.route("/api/v1/support/orders", methods=["GET"])
+def support_list_orders():
+    user = get_logged_in_user()
+
+    if user is None:
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
+
+    if user["role"] != "support":
+        return jsonify({
+            "error": "Support access required"
+        }), 403
+
+    db = get_db()
+
+    orders = db.execute("""
+        SELECT
+            orders.id,
+            users.username AS customer,
+            orders.total,
+            orders.status,
+            orders.created_at
+        FROM orders
+        JOIN users ON orders.user_id = users.id
+        WHERE orders.assigned_support_id = ?
+        ORDER BY orders.id DESC
+    """, (user["id"],)).fetchall()
+
+    db.close()
+
+    return jsonify({
+        "orders": [dict(order) for order in orders]
+    }), 200
+
 
 #--------------------
 # SUPPORT: VIEW ASSIGNED ORDERS

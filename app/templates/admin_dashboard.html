@@ -140,16 +140,74 @@
 
         <div class="card">
             <h3>🛡️ Security Events</h3>
+
             <p>Review authentication failures and
                other security events.</p>
-            <p><strong>Event viewer coming soon.</strong></p>
+
+            <a href="#security-events">View Security Events</a>
         </div>
+    
+<section id="security-events">
+    <h2>🛡️ Security Events Viewer</h2>
+
+    <p>Monitor recorded security activities.</p>
+
+    <button type="button" id="loadSecurityEvents">
+        Load Security Events
+    </button>
+
+    <p id="securityEventsMessage"></p>
+
+    <div id="securityEventsResults"></div>
+</section>
 
         <div class="card">
             <h3>📋 Order Management</h3>
             <p>Monitor customer orders and their status.</p>
-            <p><strong>Order tools coming soon.</strong></p>
+             <a href="#order-management">View Orders</a>
         </div>
+
+<section id="order-management">
+    <h2>📋 Customer Orders</h2>
+
+    <p>View and monitor customer orders.</p>
+
+    <button type="button" id="loadOrders">
+        Load Customer Orders
+    </button>
+
+    <p id="ordersMessage"></p>
+
+    <div id="ordersResults"></div>
+
+<h3>Assign Order to Support Staff</h3>
+
+<form id="assignOrderForm">
+    <label for="assignOrderId">Order ID:</label>
+    <input
+        type="number"
+        id="assignOrderId"
+        min="1"
+        required
+    >
+
+    <label for="supportId">Support Staff ID:</label>
+    <input
+        type="number"
+        id="supportId"
+        value="3"
+        min="1"
+        required
+    >
+
+    <button type="submit">
+        Assign Order
+    </button>
+</form>
+
+<p id="assignmentMessage"></p>
+
+</section>
 
     </div>
 
@@ -267,6 +325,164 @@ document.getElementById("addProductForm").addEventListener(
         }
     }
 );
+
+
+
+document.getElementById("loadSecurityEvents")
+    .addEventListener("click", async function () {
+
+    const message = document.getElementById("securityEventsMessage");
+    const results = document.getElementById("securityEventsResults");
+
+    message.textContent = "Loading security events...";
+    results.replaceChildren();
+
+    try {
+        const response = await fetch("/api/v1/admin/security-events", {
+            method: "GET",
+            credentials: "same-origin"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        message.textContent = "Security events loaded.";
+
+        // Display the response safely as formatted JSON.
+        const output = document.createElement("pre");
+        output.textContent = JSON.stringify(data, null, 2);
+        results.appendChild(output);
+
+    } catch (error) {
+        message.textContent = "Failed to load security events: " + error.message;
+    }
+});
+
+
+
+document.getElementById("loadOrders")
+    .addEventListener("click", async function () {
+
+    const message = document.getElementById("ordersMessage");
+    const results = document.getElementById("ordersResults");
+
+    message.textContent = "Loading customer orders...";
+    results.replaceChildren();
+
+    try {
+        const response = await fetch("/api/v1/admin/orders", {
+            method: "GET",
+            credentials: "same-origin"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        const table = document.createElement("table");
+        table.border = "1";
+        table.cellPadding = "10";
+        table.style.borderCollapse = "collapse";
+        table.style.width = "100%";
+
+        const headings = [
+            "Order ID", "Customer", "Total",
+            "Status", "Support ID", "Date"
+        ];
+
+        const headerRow = table.insertRow();
+
+        headings.forEach(heading => {
+            const th = document.createElement("th");
+            th.textContent = heading;
+            headerRow.appendChild(th);
+        });
+
+        data.orders.forEach(order => {
+            const row = table.insertRow();
+
+            const values = [
+                order.id,
+                order.customer,
+                "₦" + Number(order.total).toLocaleString("en-NG"),
+                order.status,
+                order.assigned_support_id ?? "Not assigned",
+                order.created_at
+            ];
+
+            values.forEach(value => {
+                const cell = row.insertCell();
+                cell.textContent = value;
+            });
+        });
+
+        if (data.orders.length === 0) {
+            message.textContent = "No customer orders found.";
+        } else {
+            message.textContent =
+                data.orders.length + " customer orders loaded successfully.";
+        }
+
+        results.appendChild(table);
+
+    } catch (error) {
+        message.textContent =
+            "Failed to load customer orders: " + error.message;
+    }
+});
+
+
+document.getElementById("assignOrderForm")
+    .addEventListener("submit", async function (event) {
+
+    event.preventDefault();
+
+    const orderId = document.getElementById("assignOrderId").value;
+    const supportId = Number(document.getElementById("supportId").value);
+    const message = document.getElementById("assignmentMessage");
+
+    message.textContent = "Assigning order...";
+
+    try {
+        const response = await fetch(
+            `/api/v1/admin/orders/${orderId}/assignment`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": {{ csrf_token | tojson }}
+                },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    support_id: supportId
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            message.textContent =
+                result.error || "Order assignment failed.";
+            return;
+        }
+
+        message.textContent =
+            `Order #${result.order_id} assigned successfully to ${result.support_username}.`;
+
+        // Refresh the order table to show the assignment.
+        document.getElementById("loadOrders").click();
+
+    } catch (error) {
+        message.textContent =
+            "Error assigning order: " + error.message;
+    }
+});
 
 </script>
 

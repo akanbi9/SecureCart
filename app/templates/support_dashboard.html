@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureCart - Support Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #1e293b;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #e2e8f0;
+        }
+
+        #ordersResults {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🛡️ SecureCart Support Dashboard</h1>
+
+    <p>Welcome, <strong>{{ username }}</strong>!</p>
+
+    <div class="card">
+        <h2>📦 My Assigned Orders</h2>
+
+        <p>View customer orders assigned to you by the administrator.</p>
+
+        <button type="button" id="loadOrders">
+            Load Assigned Orders
+        </button>
+
+        <p id="ordersMessage"></p>
+
+        <div id="ordersResults"></div>
+    </div>
+
+</div>
+
+<script>
+document.getElementById("loadOrders")
+    .addEventListener("click", async function () {
+
+    const message = document.getElementById("ordersMessage");
+    const results = document.getElementById("ordersResults");
+
+    message.textContent = "Loading assigned orders...";
+    results.replaceChildren();
+
+    try {
+        const response = await fetch("/api/v1/support/orders", {
+            method: "GET",
+            credentials: "same-origin"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (data.orders.length === 0) {
+            message.textContent = "No orders assigned to you yet.";
+            return;
+        }
+
+        const table = document.createElement("table");
+
+        const headings = [
+            "Order ID",
+            "Customer",
+            "Total",
+            "Status",
+            "Date"
+        ];
+
+        const headerRow = table.insertRow();
+
+        headings.forEach(heading => {
+            const th = document.createElement("th");
+            th.textContent = heading;
+            headerRow.appendChild(th);
+        });
+
+        data.orders.forEach(order => {
+            const row = table.insertRow();
+
+            const values = [
+                order.id,
+                order.customer,
+                "₦" + Number(order.total).toLocaleString("en-NG"),
+                order.status,
+                order.created_at
+            ];
+
+            values.forEach(value => {
+                const cell = row.insertCell();
+                cell.textContent = value;
+            });
+        });
+
+        results.appendChild(table);
+
+        message.textContent =
+            data.orders.length + " assigned order(s) loaded successfully.";
+
+    } catch (error) {
+        message.textContent =
+            "Failed to load orders: " + error.message;
+    }
+});
+</script>
+
+</body>
+</html>
