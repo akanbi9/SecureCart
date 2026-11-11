@@ -70,42 +70,66 @@ The project documents eight remediated security findings:
 
 The findings, remediation steps, and remaining risks are documented in `docs/security-findings.md`.
 
-## 🧪 Automated Security Testing
 
-SecureCart includes 27 automated security tests covering:
+## 🧪 Automated Security and Functional Testing
+
+SecureCart includes 39 automated tests developed using
+Python and pytest.
+
+### Test Results
+
+| Test Category | Total | Passed | Failed |
+|---|---:|---:|---:|
+| Security Tests | 34 | 34 | 0 |
+| Functional Tests | 5 | 5 | 0 |
+| **Total** | **39** | **39** | **0** |
+
+### Security Testing Coverage
 
 - Authentication and login protection
-- Authorization and access control
-- Coupon security
-- Order input validation
-- Stock protection
+- Role-based access control
+- CSRF protection
+- Insecure Direct Object Reference (IDOR) prevention
+- Coupon misuse prevention
+- Order input validation and stock protection
 - SQL injection input handling
 - Payment webhook validation
 - User role and profile protection
+- Unauthorized dashboard access prevention
 
-**Latest local test result: 27 passed in 49.21 seconds.**
+### Functional Testing Coverage
 
-Run the security tests using:
+- Homepage accessibility
+- Customer registration
+- Customer login
+- Product listing
+- Customer order creation
+
+### Run All Automated Tests
+
+```bash
+python -m pytest tests/ -v
+```
+
+### Run Security Tests Only
 
 ```bash
 python -m pytest tests/security/ -v
 ```
 
-Passing these tests confirms the tested security behaviors, not that the application is free of all vulnerabilities.
+### Verified Test Results
 
-## 🔍 Dependency Vulnerability Assessment
+**39 tests passed, 0 failed.**
 
-The Python dependencies listed in `requirements.txt` were scanned using `pip-audit`.
+Execution time: 67.80 seconds.
 
-```bash
-python -m pip_audit -r requirements.txt
-```
+Test evidence:
+[View Automated Test Results](reports/test_results.txt)
 
-**Result:** No known vulnerabilities found at the time of the assessment.
+Passing these tests confirms the tested security
+behaviors. It does not guarantee that the application
+is free from all vulnerabilities.
 
-Evidence: `evidence/dependency-audit.txt`
-
-This does not cover every possible application component or future vulnerability disclosure.
 
 ## ⚙️ Installation and Setup
 
@@ -194,11 +218,6 @@ Through vulnerability assessment, remediation, automated testing, dependency aud
 **Disclaimer:** SecureCart is an educational security project. Its mock payment and supplier integrations are not intended for real financial transactions or production deployment.
 
 
-
-## Automated Testing
-
-SecureCart includes automated security and functional
-tests developed using Python and pytest.
 
 ### Test Results
 
