@@ -192,3 +192,51 @@ SecureCart demonstrates the practical application of cybersecurity principles to
 Through vulnerability assessment, remediation, automated testing, dependency auditing, and CI integration, the project provides hands-on experience with secure software development.
 
 **Disclaimer:** SecureCart is an educational security project. Its mock payment and supplier integrations are not intended for real financial transactions or production deployment.
+
+
+
+## Automated Testing
+
+SecureCart includes automated security and functional
+tests developed using Python and pytest.
+
+### Test Results
+
+- Total Tests: 39
+- Security Tests: 34
+- Functional Tests: 5
+- Passed: 39
+- Failed: 0
+
+### Security Testing Coverage
+
+- Authentication and login security
+- Role-based access control
+- CSRF protection
+- IDOR prevention
+- Coupon misuse prevention
+- SQL injection input validation
+- Payment webhook security
+- Unauthorized privilege escalation
+
+### Functional Testing Coverage
+
+- Homepage accessibility
+- Customer registration
+- Customer login
+- Product listing
+- Customer order creation
+
+### Running the Tests
+
+```bash
+python -m pytest tests/ -v
+```
+
+### Test Evidence
+
+The complete automated test results are available in:
+
+[View Test Results](reports/test_results.txt)
+
+All 39 automated tests passed successfully.
